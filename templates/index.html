@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DEEPRESCUE AI SYSTEM</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            background: linear-gradient(to right, #000428, #004e92);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: 70px;
+            margin-top: 20px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .container {
+            background: linear-gradient(to right, #ff416c, #7a30a6);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+            width: 70%;
+            margin: auto;
+            margin-top: 30px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            color: black;
+            font-size: 14px;
+            border: 3px solid black;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 5px;
+            box-shadow: 4px 4px 0px black;
+        }
+
+        .custom-file-upload:hover {
+            background: lightgray;
+        }
+
+        button {
+            background: white;
+            color: black;
+            padding: 10px 20px;
+            border: 3px solid black;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 5px;
+            margin-top: 10px;
+            box-shadow: 4px 4px 0px black;
+        }
+
+        button:hover {
+            background: lightgray;
+        }
+
+        .preview-container img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-message {
+            color: yellow;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            display: none;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>DEEPRESCUE AI SYSTEM</h1>
+    
+    <div class="container">
+        <label class="custom-file-upload">
+            <input type="file" id="fileUpload" accept=".jpg" onchange="previewImage(event)">
+            Choose File
+        </label>
+        <span style="color: black; font-weight: bold;"> UPLOAD THE IMAGE HERE </span>
+
+        <div class="preview-container">
+            <img id="imgPreview" src="#" alt="Image Preview" style="display:none;">
+        </div>
+
+        <p id="errorText" class="error-message" style="display:none;"></p>
+        
+        <button onclick="submitImage()">Submit</button>
+
+        <div class="spinner" id="loadingSpinner">Processing...</div>
+
+        <div class="result-container" id="resultContainer"></div>
+    </div>
+
+    <script>
+        function previewImage(event) {
+            var file = event.target.files[0];
+            var imagePreview = document.getElementById('imgPreview');
+            var errorText = document.getElementById('errorText');
+
+            if (!file) {
+                imagePreview.style.display = 'none';
+                errorText.style.display = 'none';
+                return;
+            }
+
+            // ✅ Validate file extension
+            if (!file.name.toLowerCase().endsWith('.jpg')) {
+                errorText.innerText = "❌ Only JPG files are supported!";
+                errorText.style.display = 'block';
+                imagePreview.style.display = 'none';
+                return;
+            }
+
+            errorText.style.display = 'none';
+            imagePreview.style.display = 'block';
+
+            var reader = new FileReader();
+            reader.onload = function () {
+                imagePreview.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function submitImage() {
+            var fileInput = document.getElementById('fileUpload');
+            var file = fileInput.files[0];
+            var loadingSpinner = document.getElementById('loadingSpinner');
+            var resultContainer = document.getElementById('resultContainer');
+            var errorText = document.getElementById('errorText');
+
+            if (!file) {
+                alert("Please upload an image first!");
+                return;
+            }
+
+            // ✅ Check if file is JPG before submitting
+            if (!file.name.toLowerCase().endsWith('.jpg')) {
+                alert("❌ Only JPG files are supported!");
+                return;
+            }
+
+            loadingSpinner.style.display = 'block';
+            resultContainer.innerHTML = '';
+
+            var formData = new FormData();
+            formData.append('image', file);
+
+            fetch('/detect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+
+                if (data.status === "success") {
+                    resultContainer.innerHTML = `
+                        <h3>Detected Objects:</h3>
+                        <p>${data.objects}</p>
+                        <img src="static/${data.image}" alt="Detected Objects">
+                    `;
+                } else {
+                    resultContainer.innerHTML = `<p class="error-message">❌ Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                resultContainer.innerHTML = `<p class="error-message">❌ Error: ${error}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
